@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title th:text="${playlist.name} + ' — VideoHub'">Playlist — VideoHub</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+
+<nav th:replace="~{fragments/layout :: nav(active='playlists')}"></nav>
+
+<div class="container">
+  <section class="section">
+    <div class="section__head">
+      <div>
+        <h1 th:text="${playlist.name}">Watch later</h1>
+        <p th:text="${items.size()} + ' videos in this playlist'">0 videos in this playlist</p>
+      </div>
+      <form th:if="${isOwner}" th:action="@{'/playlists/' + ${playlist.id} + '/delete'}" method="post"
+            onsubmit="return confirm('Delete this playlist?');">
+        <button type="submit" class="btn btn-danger btn-sm">Delete playlist</button>
+      </form>
+    </div>
+
+    <div class="table-wrap" th:if="${!items.isEmpty()}">
+      <table>
+        <thead>
+        <tr><th>#</th><th></th><th>Title</th><th>Duration</th><th th:if="${isOwner}"></th></tr>
+        </thead>
+        <tbody>
+        <tr th:each="item, iter : ${items}">
+          <td th:text="${iter.count}">1</td>
+          <td style="width:80px;">
+            <div class="card__thumb" style="width:80px; aspect-ratio:16/9; border-radius:4px;"
+                 th:style="${!#strings.isEmpty(item.thumbnailUrl)} ? |background-image:url(${item.thumbnailUrl});background-size:cover;background-position:center;| : ''"></div>
+          </td>
+          <td><a th:href="@{'/videos/' + ${item.videoId}}" th:text="${item.title}">Video title</a></td>
+          <td><span class="reel-badge" th:text="${item.duration}">0:00</span></td>
+          <td th:if="${isOwner}">
+            <form th:action="@{'/playlists/' + ${playlist.id} + '/items/' + ${item.id} + '/remove'}" method="post">
+              <button type="submit" class="btn btn-ghost btn-sm">Remove</button>
+            </form>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="empty" th:if="${items.isEmpty()}">
+      <h3>This playlist is empty</h3>
+      <p>Browse videos and use <strong>Add to playlist</strong> to save them here.</p>
+      <a th:href="@{/}" class="btn btn-primary btn-sm" style="margin-top:12px;">Browse videos</a>
+    </div>
+  </section>
+</div>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

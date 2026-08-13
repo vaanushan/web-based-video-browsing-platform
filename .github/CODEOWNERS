@@ -1,0 +1,9 @@
+# Auto-requests review from the module owner when their package changes
+/src/main/java/com/sliit/videobrowsing/video/       @asven
+/src/main/java/com/sliit/videobrowsing/user/        @maldeniya
+/src/main/java/com/sliit/videobrowsing/playlist/    @sandeepani
+/src/main/java/com/sliit/videobrowsing/search/      @amsakan
+/src/main/java/com/sliit/videobrowsing/comment/     @pathirana
+/src/main/java/com/sliit/videobrowsing/admin/       @vaanushan-v
+/src/main/java/com/sliit/videobrowsing/security/    @maldeniya
+/src/main/java/com/sliit/videobrowsing/common/      @maldeniya

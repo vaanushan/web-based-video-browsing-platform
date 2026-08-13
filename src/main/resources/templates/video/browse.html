@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>VideoHub — Home</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+
+<nav th:replace="~{fragments/layout :: nav(active='browse')}"></nav>
+
+<section class="hero">
+  <div class="container">
+    <div class="hero__eyebrow">Trending now</div>
+    <div class="hero__grid">
+      <div>
+        <h1 th:text="${featured.title}">Getting Started with Java — Full Tutorial</h1>
+        <p th:text="${featured.description}">A complete beginner-friendly walkthrough covering setup, syntax, and your first project.</p>
+        <div style="display:flex; gap:12px; margin-top: 20px; flex-wrap:wrap;">
+          <a th:href="@{'/videos/' + ${featured.id}}" class="btn btn-primary">Watch now</a>
+          <a th:href="@{/search}" class="btn btn-ghost">Explore</a>
+          <a th:href="@{/admin/login}" class="btn btn-ghost">Admin login</a>
+        </div>
+      </div>
+      <a th:href="@{'/videos/' + ${featured.id}}" class="hero__feature"
+         th:style="${!#strings.isEmpty(featured.thumbnailUrl)} ? |background-image:url(${featured.thumbnailUrl});background-size:cover;background-position:center;| : ''">
+        <div class="hero__play">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div class="hero__feature-overlay">
+          <span class="reel-badge" th:text="${featured.duration}">42:10</span>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section__head">
+      <h2>Recommended for you</h2>
+      <a th:href="@{/search}">View all &rarr;</a>
+    </div>
+
+    <div class="grid" th:if="${!videos.isEmpty()}">
+      <a class="card" th:each="v : ${videos}" th:href="@{'/videos/' + ${v.id}}">
+        <div class="card__thumb"
+             th:style="${!#strings.isEmpty(v.thumbnailUrl)} ? |background-image:url(${v.thumbnailUrl});background-size:cover;background-position:center;| : ''">
+          <span class="reel-badge" th:text="${v.duration}">18:24</span>
+        </div>
+        <div class="card__body">
+          <h3 class="card__title" th:text="${v.title}">Video title</h3>
+          <div class="card__meta">
+            <span th:text="${v.category}">Tech</span>
+            <span>&middot;</span>
+            <span th:text="${v.views} + ' views'">1.2k views</span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="empty" th:if="${videos.isEmpty()}">
+      <h3>No videos yet</h3>
+      <p>Once an upload finishes processing, it'll show up here.</p>
+    </div>
+  </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

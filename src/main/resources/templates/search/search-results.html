@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Search — VideoHub</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+
+<nav th:replace="~{fragments/layout :: nav(active='search')}"></nav>
+
+<div class="container">
+  <section class="section">
+    <div class="section__head">
+      <div>
+        <h1 th:text="${(query != null and !query.isEmpty()) ? 'Results for &quot;' + query + '&quot;' : 'Explore videos'}">Results</h1>
+        <p th:text="${results.size()} + ' videos found'">14 videos found</p>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <a th:href="@{/search(category='all')}" th:classappend="${category == 'all' or category == null} ? 'is-active'">All</a>
+      <a th:href="@{/search(category='music')}" th:classappend="${category == 'music'} ? 'is-active'">Music</a>
+      <a th:href="@{/search(category='gaming')}" th:classappend="${category == 'gaming'} ? 'is-active'">Gaming</a>
+      <a th:href="@{/search(category='tech')}" th:classappend="${category == 'tech'} ? 'is-active'">Tech</a>
+      <a th:href="@{/search(category='education')}" th:classappend="${category == 'education'} ? 'is-active'">Education</a>
+    </div>
+
+    <div class="grid" th:if="${!results.isEmpty()}">
+      <a class="card" th:each="v : ${results}" th:href="@{'/videos/' + ${v.id}}">
+        <div class="card__thumb"
+             th:style="${!#strings.isEmpty(v.thumbnailUrl)} ? |background-image:url(${v.thumbnailUrl});background-size:cover;background-position:center;| : ''">
+          <span class="reel-badge" th:text="${v.duration}">18:24</span>
+        </div>
+        <div class="card__body">
+          <h3 class="card__title" th:text="${v.title}">Video title</h3>
+          <div class="card__meta">
+            <span th:text="${v.category}">Tech</span>
+            <span>&middot;</span>
+            <span th:text="${v.views} + ' views'">1.2k views</span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="empty" th:if="${results.isEmpty()}">
+      <h3>No matches</h3>
+      <p>Try a different keyword or browse by category above.</p>
+    </div>
+  </section>
+</div>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

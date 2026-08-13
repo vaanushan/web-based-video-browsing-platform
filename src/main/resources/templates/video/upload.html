@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Upload video — VideoHub</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+
+<nav th:replace="~{fragments/layout :: nav(active='upload')}"></nav>
+
+<div class="container">
+  <section class="section">
+    <div class="section__head">
+      <div>
+        <h1>Upload a video</h1>
+        <p>Share your content with viewers on VideoHub.</p>
+      </div>
+    </div>
+
+    <form class="auth-card" style="max-width:560px;" th:action="@{/api/videos}" method="post" id="uploadForm">
+      <div class="field">
+        <label for="title">Title</label>
+        <input id="title" name="title" type="text" placeholder="e.g. How to Build a REST API in Spring Boot" required/>
+      </div>
+      <div class="field">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" placeholder="Tell viewers what this coverage includes…"></textarea>
+      </div>
+      <div class="field">
+        <label for="s3Url">Video URL</label>
+        <input id="s3Url" name="s3Url" type="url" placeholder="YouTube link or direct .mp4 URL" required/>
+        <p style="font-size:0.78rem; color:var(--muted-2); margin-top:6px;">Paste a YouTube link (e.g. https://youtube.com/watch?v=...) or a direct video file URL.</p>
+      </div>
+      <div class="field">
+        <label for="thumbnailUrl">Thumbnail URL (optional)</label>
+        <input id="thumbnailUrl" name="thumbnailUrl" type="url" placeholder="https://example.com/thumbnail.jpg"/>
+        <p style="font-size:0.78rem; color:var(--muted-2); margin-top:6px;">Leave blank to auto-fetch from YouTube. Or paste a custom image URL.</p>
+      </div>
+      <div class="field">
+        <label for="tags">Tags (comma-separated)</label>
+        <input id="tags" name="tags" type="text" placeholder="tech, tutorial, programming"/>
+      </div>
+      <p id="uploadError" style="color: var(--coral); font-size: 0.85rem; display:none;"></p>
+      <button type="submit" class="btn btn-primary">Publish video</button>
+    </form>
+  </section>
+</div>
+
+<script th:inline="javascript">
+  document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const err = document.getElementById('uploadError');
+    err.style.display = 'none';
+
+    const params = new URLSearchParams();
+    params.set('title', form.title.value);
+    params.set('description', form.description.value || '');
+    params.set('s3Url', form.s3Url.value);
+    if (form.thumbnailUrl.value) params.set('thumbnailUrl', form.thumbnailUrl.value);
+    params.set('uploaderId', /*[[${currentUser.id}]]*/ '1');
+    (form.tags.value || '').split(',').map(t => t.trim()).filter(Boolean).forEach(t => params.append('tags', t));
+
+    try {
+      const res = await fetch('/api/videos?' + params.toString(), { method: 'POST', credentials: 'same-origin' });
+      if (!res.ok) throw new Error('Upload failed');
+      const video = await res.json();
+      window.location.href = '/videos/' + video.id;
+    } catch (ex) {
+      err.textContent = 'Upload failed. Make sure you are signed in and the video URL is valid.';
+      err.style.display = 'block';
+    }
+  });
+</script>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

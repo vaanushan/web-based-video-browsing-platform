@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Admin — VideoHub</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+
+<nav th:replace="~{fragments/layout :: nav(active='admin')}"></nav>
+
+<div class="container">
+  <section class="section">
+    <h1>Admin panel</h1>
+    <p>Manage users, moderate reported content, and define platform rules.</p>
+
+    <div class="tabs">
+      <a href="#users" class="is-active">Users</a>
+      <a href="#reports">Pending reports</a>
+      <a href="#rules">Violation rules</a>
+      <a href="#videos-manage">Manage Videos</a>
+    </div>
+
+    <!-- ===== Users ===== -->
+    <div id="users">
+      <div class="section__head">
+        <h2>Registered users</h2>
+        <span class="reel-badge" th:text="${users.size()} + ' users'">0 users</span>
+      </div>
+
+      <form th:action="@{/admin/users/create}" method="post" class="side-card" style="max-width:520px; margin-bottom:24px;">
+        <h3 style="margin-bottom:14px; font-size:1rem;">Create new Admin account</h3>
+        <div class="field">
+          <label for="createName">Full name</label>
+          <input id="createName" name="name" type="text" placeholder="Admin name" required/>
+        </div>
+        <div class="field">
+          <label for="createEmail">Email</label>
+          <input id="createEmail" name="email" type="email" placeholder="admin@videohub.com" required/>
+        </div>
+        <div class="field">
+          <label for="createPassword">Password</label>
+          <input id="createPassword" name="password" type="password" placeholder="Min. 8 characters" required minlength="8"/>
+        </div>
+        <div class="field">
+          <label for="createRole">Role</label>
+          <select id="createRole" name="role" style="width:100%; background:var(--ink-raised); border:1px solid var(--line); border-radius:6px; padding:12px; color:var(--paper);">
+            <option value="ADMIN">ADMIN</option>
+            <option value="CONTENT_CREATOR">CONTENT_CREATOR</option>
+            <option value="END_USER">END_USER</option>
+          </select>
+        </div>
+        <p th:if="${createError}" style="color:var(--coral); font-size:0.85rem;" th:text="${createError}"></p>
+        <p th:if="${createSuccess}" style="color:#78c896; font-size:0.85rem;" th:text="${createSuccess}"></p>
+        <button type="submit" class="btn btn-primary btn-sm">Create account</button>
+      </form>
+
+      <div class="table-wrap" th:if="${!users.isEmpty()}">
+        <table>
+          <thead>
+          <tr><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+          <tr th:each="u : ${users}">
+            <td th:text="${u.name}">Name</td>
+            <td th:text="${u.email}">email@videohub.com</td>
+            <td><span class="status-pill status-pending" th:text="${u.role}">END_USER</span></td>
+            <td style="display:flex; gap:8px; flex-wrap:wrap;">
+              <form th:action="@{'/admin/users/' + ${u.id} + '/role'}" method="post" style="display:flex; gap:6px;">
+                <select name="role" class="field" style="padding:6px 10px; font-size:0.8rem; width:auto;">
+                  <option th:each="r : ${T(com.sliit.videobrowsing.user.entity.Role).values()}"
+                          th:value="${r}" th:text="${r}" th:selected="${u.role == r}"></option>
+                </select>
+                <button type="submit" class="btn btn-ghost btn-sm">Update</button>
+              </form>
+              <form th:action="@{'/admin/users/' + ${u.id} + '/delete'}" method="post"
+                    onsubmit="return confirm('Delete this user permanently?');">
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+              </form>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== Reports ===== -->
+    <div id="reports" style="margin-top:48px;">
+      <div class="section__head">
+        <h2>Pending reports</h2>
+        <span class="reel-badge" th:text="${reports.size()} + ' pending'">0 pending</span>
+      </div>
+
+      <div class="table-wrap" th:if="${!reports.isEmpty()}">
+        <table>
+          <thead>
+          <tr><th>Video</th><th>Reason</th><th>Reported by</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody>
+          <tr th:each="r : ${reports}">
+            <td><a th:href="@{'/videos/' + ${r.videoId}}" th:text="${r.videoTitle}">Video title</a></td>
+            <td th:text="${r.reason}">Reason</td>
+            <td th:text="${r.reportedBy}">Reporter</td>
+            <td><span class="status-pill status-pending" th:text="${r.status}">PENDING</span></td>
+            <td style="display:flex; gap:8px;">
+              <form th:action="@{'/admin/reports/' + ${r.id} + '/resolve'}" method="post">
+                <button type="submit" class="btn btn-ghost btn-sm">Resolve</button>
+              </form>
+              <form th:action="@{'/admin/videos/' + ${r.videoId} + '/remove'}" method="post">
+                <input type="hidden" name="reportId" th:value="${r.id}"/>
+                <button type="submit" class="btn btn-danger btn-sm">Remove video</button>
+              </form>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="empty" th:if="${reports.isEmpty()}">
+        <h3>No pending reports</h3>
+        <p>Reported videos and comments will appear here for review.</p>
+      </div>
+    </div>
+
+    <!-- ===== Rules ===== -->
+    <div id="rules" style="margin-top:48px;">
+      <div class="section__head">
+        <h2>Violation rules</h2>
+      </div>
+
+      <form th:action="@{/admin/rules}" method="post" class="side-card" style="max-width:520px; margin-bottom:24px;">
+        <div class="field">
+          <label for="type">Rule type</label>
+          <input id="type" name="type" type="text" placeholder="e.g. Copyright, Harassment" required/>
+        </div>
+        <div class="field">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" placeholder="Explain what content this rule flags" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Add rule</button>
+      </form>
+
+      <div class="table-wrap" th:if="${!rules.isEmpty()}">
+        <table>
+          <thead><tr><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+          <tr th:each="rule : ${rules}">
+            <td th:text="${rule.type}">Copyright</td>
+            <td th:text="${rule.description}">Rule description</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <!-- ===== Manage Videos ===== -->
+    <div id="videos-manage" style="margin-top:48px;">
+      <div class="section__head">
+        <h2>Manage Videos</h2>
+        <span class="reel-badge" th:text="${videos.size()} + ' videos'">0 videos</span>
+      </div>
+
+      <p th:if="${videoDeleteSuccess}" style="color:#78c896; font-size:0.9rem; margin-bottom:12px;" th:text="${videoDeleteSuccess}"></p>
+      <p th:if="${videoDeleteError}" style="color:var(--coral); font-size:0.9rem; margin-bottom:12px;" th:text="${videoDeleteError}"></p>
+
+      <div class="table-wrap" th:if="${!videos.isEmpty()}">
+        <table>
+          <thead>
+          <tr><th>ID</th><th>Title</th><th>Uploader</th><th>Views</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+          <tr th:each="v : ${videos}">
+            <td th:text="${v.id}">1</td>
+            <td><a th:href="@{'/videos/' + ${v.id}}" th:text="${v.title}">Video Title</a></td>
+            <td th:text="${v.uploaderName}">Uploader</td>
+            <td th:text="${v.viewCount}">0</td>
+            <td><span class="status-pill status-pending" th:text="${v.status}">PUBLISHED</span></td>
+            <td>
+              <form th:action="@{'/admin/videos/' + ${v.id} + '/delete'}" method="post"
+                    onsubmit="return confirm('Permanently delete this video? This cannot be undone.');">
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+              </form>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="empty" th:if="${videos.isEmpty()}">
+        <h3>No published videos</h3>
+        <p>Videos uploaded to the platform will appear here.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

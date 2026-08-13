@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title th:text="${video.title} + ' — VideoHub'">Video — VideoHub</title>
+  <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+
+<nav th:replace="~{fragments/layout :: nav(active='browse')}"></nav>
+
+<div class="container">
+  <div class="player-layout">
+
+    <div>
+      <!-- YouTube embed -->
+      <div class="player" th:if="${video.isYoutube}">
+        <iframe th:src="${video.embedUrl}"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen
+                title="Video player"></iframe>
+      </div>
+      <!-- Direct video file -->
+      <div class="player" th:unless="${video.isYoutube}">
+        <video controls preload="metadata" th:src="${video.s3Url}" th:poster="${video.thumbnailUrl}">
+          Your browser does not support HTML5 video.
+        </video>
+      </div>
+
+      <div class="player-info">
+        <h1 th:text="${video.title}">Video title</h1>
+        <div class="card__meta">
+          <span th:text="${video.uploaderName}">Uploader</span>
+          <span>&middot;</span>
+          <span id="viewCount" th:text="${video.views} + ' views'">0 views</span>
+          <span>&middot;</span>
+          <span class="reel-badge" th:text="${video.duration}">0:00</span>
+        </div>
+
+        <div class="player-info__tags">
+          <span class="tag-chip" th:each="tag : ${video.tags}" th:text="${tag}">tag</span>
+        </div>
+
+        <p th:text="${video.description}">Description</p>
+
+        <div class="action-bar">
+          <button id="likeBtn" type="button"
+                  th:classappend="${userLiked} ? ' is-liked' : ''"
+                  th:attr="data-video-id=${video.id}">
+            <span id="likeIcon">&#9829;</span>
+            <span id="likeCount" th:text="${likeCount}">0</span>
+          </button>
+          <button id="shareBtn" type="button" class="btn btn-ghost btn-sm">Share</button>
+
+          <div th:if="${currentUser != null}" class="playlist-add" style="display:flex; gap:8px; align-items:center;">
+            <select id="playlistSelect" class="field" style="padding:7px 12px; font-size:0.85rem; width:auto; margin:0;">
+              <option value="">Add to playlist&hellip;</option>
+              <option th:each="pl : ${userPlaylists}" th:value="${pl.id}" th:text="${pl.name}">Playlist</option>
+            </select>
+            <button id="addToPlaylistBtn" type="button" class="btn btn-primary btn-sm">Add</button>
+            <a th:if="${userPlaylists.isEmpty()}" th:href="@{/playlists}" class="btn btn-ghost btn-sm">Create playlist</a>
+          </div>
+
+          <button th:if="${canDelete}" id="deleteVideoBtn" type="button" class="btn btn-danger btn-sm">Delete video</button>
+        </div>
+      </div>
+
+      <!-- Comments -->
+      <div class="side-card" style="margin-top: 32px;">
+        <h3 id="commentHeading" th:text="${comments.size()} + ' comments'">0 comments</h3>
+
+        <div th:if="${currentUser != null}">
+          <form id="commentForm" style="margin-bottom: 18px;">
+            <div class="field">
+              <label for="commentText">Add a comment</label>
+              <textarea id="commentText" placeholder="Share your thoughts&hellip;" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Post comment</button>
+          </form>
+        </div>
+        <p th:if="${currentUser == null}" style="font-size:0.88rem; margin-bottom:18px;">
+          <a th:href="@{/login}" style="color:var(--gold); font-weight:600;">Sign in</a> to comment and like videos.
+        </p>
+
+        <div id="commentList">
+          <div class="comment" th:each="c : ${comments}">
+            <div class="avatar" th:text="${#strings.substring(c.userName,0,1)}">U</div>
+            <div>
+              <span class="comment__name" th:text="${c.userName}">User</span>
+              <span class="comment__meta" th:text="${c.postedAgo}">Recently</span>
+              <div class="comment__body" th:text="${c.content}">Comment text</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="side-card">
+        <h3>Up next</h3>
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <a th:each="r : ${related}" th:href="@{'/videos/' + ${r.id}}" style="display:flex; gap:10px; align-items:center;">
+            <div class="card__thumb" style="width:100px; aspect-ratio:16/9; border-radius:6px; flex-shrink:0;">
+              <span class="reel-badge" style="font-size:0.62rem; padding:2px 6px;" th:text="${r.duration}">0:00</span>
+            </div>
+            <div>
+              <div style="font-size:0.85rem; font-weight:600;" th:text="${r.title}">Related video</div>
+              <div class="card__meta" th:text="${r.views} + ' views'">0 views</div>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status"></div>
+
+<script th:inline="javascript">
+  const videoId = /*[[${video.id}]]*/ 1;
+  const isLoggedIn = /*[[${currentUser != null}]]*/ false;
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('is-visible');
+    setTimeout(() => t.classList.remove('is-visible'), 2500);
+  }
+
+  document.getElementById('shareBtn').addEventListener('click', async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: document.title, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        showToast('Link copied to clipboard!');
+      }
+    } catch (e) {
+      showToast('Could not share link.');
+    }
+  });
+
+  const likeBtn = document.getElementById('likeBtn');
+  if (likeBtn) {
+    likeBtn.addEventListener('click', async () => {
+      if (!isLoggedIn) {
+        window.location.href = '/login';
+        return;
+      }
+      try {
+        const res = await fetch('/api/videos/' + videoId + '/like', { method: 'POST', credentials: 'same-origin' });
+        if (res.status === 401) { window.location.href = '/login'; return; }
+        if (!res.ok) throw new Error('Like failed');
+        const data = await res.json();
+        document.getElementById('likeCount').textContent = data.count;
+        likeBtn.classList.toggle('is-liked', data.liked);
+      } catch (e) {
+        showToast('Could not update like.');
+      }
+    });
+  }
+
+  const commentForm = document.getElementById('commentForm');
+  if (commentForm) {
+    commentForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const content = document.getElementById('commentText').value.trim();
+      if (!content) return;
+      try {
+        const params = new URLSearchParams({ videoId, content });
+        const res = await fetch('/api/comments?' + params.toString(), { method: 'POST', credentials: 'same-origin' });
+        if (res.status === 401) { window.location.href = '/login'; return; }
+        if (!res.ok) throw new Error('Comment failed');
+        window.location.reload();
+      } catch (e) {
+        showToast('Could not post comment.');
+      }
+    });
+  }
+
+  // Record view on page load + poll for live view count
+  async function refreshViews() {
+    try {
+      const res = await fetch('/api/videos/' + videoId + '/views');
+      if (res.ok) {
+        const data = await res.json();
+        document.getElementById('viewCount').textContent = data.views + ' views';
+      }
+    } catch (e) {}
+  }
+  fetch('/api/videos/' + videoId + '/view', { method: 'POST' })
+    .then(() => refreshViews())
+    .catch(() => {});
+  setInterval(refreshViews, 5000);
+
+  const addBtn = document.getElementById('addToPlaylistBtn');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      const plId = document.getElementById('playlistSelect').value;
+      if (!plId) { showToast('Select a playlist first.'); return; }
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/playlists/' + plId + '/add';
+      const input = document.createElement('input');
+      input.type = 'hidden'; input.name = 'videoId'; input.value = videoId;
+      form.appendChild(input);
+      document.body.appendChild(form);
+      form.submit();
+    });
+  }
+
+  const deleteBtn = document.getElementById('deleteVideoBtn');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', async () => {
+      if (!confirm('Delete this video permanently?')) return;
+      try {
+        const res = await fetch('/api/videos/' + videoId, { method: 'DELETE', credentials: 'same-origin' });
+        if (res.status === 401) { window.location.href = '/login'; return; }
+        if (res.status === 403) { showToast('You cannot delete this video.'); return; }
+        if (!res.ok) throw new Error('Delete failed');
+        showToast('Video deleted.');
+        setTimeout(() => window.location.href = '/', 1000);
+      } catch (e) {
+        showToast('Could not delete video.');
+      }
+    });
+  }
+</script>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
